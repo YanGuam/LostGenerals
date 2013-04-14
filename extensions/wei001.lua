@@ -36,6 +36,7 @@ Wei001_Guohuai = sgs.General(extension, "Wei001_Guohuai", "wei")
 
 --[[你拥有额外的手牌/装备区各一个，你须声明用其中的一个手牌/装备区进行游戏，未进行游戏
 的手牌/装备区视为移出游戏，在你的每个回合开始时和结束后，你可以声明替换同类型区域。]]
+--[[已知问题（不知道是否算Bug）在装备替换时会触发装备技能比如白银狮子会加血]]
 Wei001_Jingbei = sgs.CreateTriggerSkill{
 	name = "Wei001_Jingbei" ,
 	frequency = sgs.Skill_Compulsory ,
