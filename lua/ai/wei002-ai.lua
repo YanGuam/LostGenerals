@@ -1,6 +1,7 @@
 --[[
 	技能：重衡
 	描述：出牌阶段，你可以将你的武将牌翻面，令一名角色弃置其所有牌并摸等量的牌，每阶段限一次。
+	状态：已完成，待验证，待优化
 ]]--
 local Wei002_Chongheng_skill = {}
 Wei002_Chongheng_skill.name = "Wei002_Chongheng"
@@ -56,6 +57,7 @@ end
 --[[
 	技能：继嗣
 	描述：每当你受到伤害时，你可以跟伤害来源交换武将牌状态；每当你的武将牌状态改变时，你可以摸一张牌。
+	状态：已完成，待验证
 ]]--
 sgs.ai_skill_invoke["Wei002_Jisi"] = function(self, data)
 	local damage = data:toDamage()

@@ -6,13 +6,14 @@
 		曹冲（重衡、继嗣）
 	版本号：20130224
 ]]--
-module("extensions.lost2013", package.seeall)
-extension = sgs.Package("lost2013")
+module("extensions.wei002", package.seeall)
+extension = sgs.Package("wei002")
 --[[曹冲]]--
 Wei002_Caochong = sgs.General(extension, "Wei002_Caochong", "wei", "3")
 --[[
 	技能：重衡
 	描述：出牌阶段，你可以将你的武将牌翻面，令一名角色弃置其所有牌并摸等量的牌，每阶段限一次。
+	状态：已完成，待验证
 ]]--
 Wei002_ChonghengCard = sgs.CreateSkillCard{ 
 	name = "Wei002_ChonghengCard", 
@@ -42,6 +43,7 @@ Wei002_Chongheng = sgs.CreateViewAsSkill{
 --[[
 	技能：继嗣
 	描述：每当你受到伤害时，你可以跟伤害来源交换武将牌状态；每当你的武将牌状态改变时，你可以摸一张牌。
+	状态：已完成，待验证
 	FAQ：武将牌状态有四种：横置、竖置、正面朝上、背面朝上。
 ]]--
 Wei002_Jisi = sgs.CreateTriggerSkill{ 
