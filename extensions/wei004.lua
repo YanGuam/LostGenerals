@@ -96,7 +96,7 @@ Wei004_Nieyi = sgs.CreateTriggerSkill{
 			if p:hasSkill(self:objectName()) then
 				if p:inMyAttackRange(player) then
 					if p:objectName() ~= player:objectName() then
-						if p:askForSkillInvoke(self:objectName()) then
+						if p:askForSkillInvoke(self:objectName(), data) then
 							local choice
 							if p:hasEquip() then
 								choice = room:askForChoice(p, self:objectName(), "nieyidiscardequip+nieyidamage")
