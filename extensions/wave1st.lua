@@ -595,8 +595,8 @@ Wave1st_Fuhuanghou = sgs.General(extension, "Wave1st_Fuhuanghou", "qun", "3")
 	描述：你可以跳过你的出牌阶段并将至少一张手牌交给一名其他角色，然后该角色进行一个额外的出牌阶段，若其于该阶段内未造成过伤害，其失去１点体力。
 	状态：尚未验证
 ]]--
-Wave1st_MiqianCard = sgs.CreateSkillCard{ 
-	name = "Wave1st_MiqianCard", 
+Wave1st_MijianCard = sgs.CreateSkillCard{ 
+	name = "Wave1st_MijianCard", 
 	target_fixed = false, 
 	will_throw = false, 
 	filter = function(self, targets, to_select) 
@@ -612,15 +612,15 @@ Wave1st_MiqianCard = sgs.CreateSkillCard{
 		target:gainAnExtraTurn()
 	end
 }
-Wave1st_MiqianVS = sgs.CreateViewAsSkill{ 
-	name = "Wave1st_Miqian", 
+Wave1st_MijianVS = sgs.CreateViewAsSkill{ 
+	name = "Wave1st_Mijian", 
 	n = 999, 
 	view_filter = function(self, selected, to_select) 
 		return not to_select:isEquipped()
 	end, 
 	view_as = function(self, cards) 
 		if #cards > 0 then
-			local card = Wave1st_MiqianCard:clone()
+			local card = Wave1st_MijianCard:clone()
 			for _,c in ipairs(cards) do
 				card:addSubcard(c)
 			end
@@ -631,14 +631,14 @@ Wave1st_MiqianVS = sgs.CreateViewAsSkill{
 		return false
 	end, 
 	enabled_at_response = function(self, player, pattern) 
-		return pattern == "@@Miqian"
+		return pattern == "@@Mijian"
 	end
 }
-Wave1st_Miqian = sgs.CreateTriggerSkill{ 
-	name = "Wave1st_Miqian", 
+Wave1st_Mijian = sgs.CreateTriggerSkill{ 
+	name = "Wave1st_Mijian", 
 	frequency = sgs.Skill_NotFrequent, 
 	events = {sgs.EventPhaseChanging}, 
-	view_as_skill = Wave1st_MiqianVS, 
+	view_as_skill = Wave1st_MijianVS, 
 	on_trigger = function(self, event, player, data) 
 		local change = data:toPhaseChange()
 		if change.to = sgs.Player_Play then
@@ -646,14 +646,14 @@ Wave1st_Miqian = sgs.CreateTriggerSkill{
 				if player:askForSkillInvoke(self:objectName(), data) then
 					player:skip(sgs.Player_Play)
 					local room = player:getRoom()
-					room:askForUseCard(player, "@@Miqian", "@Miqian")
+					room:askForUseCard(player, "@@Mijian", "@Mijian")
 				end
 			end
 		end
 	end
 }
-Wave1st_MiqianEffect = sgs.CreateTriggerSkill{ 
-	name = "#Wave1st_MiqianEffect", 
+Wave1st_MijianEffect = sgs.CreateTriggerSkill{ 
+	name = "#Wave1st_MijianEffect", 
 	frequency = sgs.Skill_Frequent, 
 	events = {sgs.Damage, sgs.EventPhaseEnd}, 
 	on_trigger = function(self, event, player, data) 
@@ -662,14 +662,14 @@ Wave1st_MiqianEffect = sgs.CreateTriggerSkill{
 			local damage = data:toDamage()
 			local source = damage.from
 			if source and source:objectName() == player:objectName() then
-				room:setPlayerMark(player, "MiqianSuccess", 1)
+				room:setPlayerMark(player, "MijianSuccess", 1)
 			end
 		elseif event == sgs.EventPhaseEnd then
 			if player:getPhase() == sgs.Player_Finish then
-				if player:getMark("MiqianSuccess") == 0 then
+				if player:getMark("MijianSuccess") == 0 then
 					room:loseHp(player, 1)
 				else
-					room:setPlayerMark(player, "MiqianSuccess", 0)
+					room:setPlayerMark(player, "MijianSuccess", 0)
 				end
 				player:loseAllMarks("@letter")
 			end
@@ -738,8 +738,8 @@ Wave1st_Liufeng:addSkill(Wave1st_GangyongTarget)
 Wave1st_Liufeng:addSkill(Wave1st_Zibao)
 Wave1st_Liru:addSkill(Wave1st_Duce)
 Wave1st_Liru:addSkill(Wave1st_FenchengStart)
-Wave1st_Fuhuanghou:addSkill(Wave1st_Miqian)
-Wave1st_Fuhuanghou:addSkill(Wave1st_MiqianEffect)
+Wave1st_Fuhuanghou:addSkill(Wave1st_Mijian)
+Wave1st_Fuhuanghou:addSkill(Wave1st_MijianEffect)
 --Wave1st_Fuhuanghou:addSkill()
 --Wave1st_Zhuran:addSkill()
 --Wave1st_Yufan:addSkill()
