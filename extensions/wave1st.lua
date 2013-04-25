@@ -693,7 +693,122 @@ Wave1st_Zhuran = sgs.General(extension, "Wave1st_Zhuran", "wu", "4")
 --[[
 	技能：胆略
 	描述：一名其他角色的回合开始时，你可以弃置不少于你体力值数量的牌，然后将牌堆顶等量的牌置于武将牌上，此回合内每当你失去一次牌后，你可以摸一张牌。此回合结束时，你获得武将牌上所有的牌。
+	状态：尚未验证
 ]]--
+Wave1st_DanlveCard = sgs.CreateSkillCard{ 
+	name = "Wave1st_DanlveCard", 
+	target_fixed = true, 
+	will_throw = true, 
+	on_use = function(self, room, source, targets) 
+		local count = self:subcardsLength()
+		local ids = room:drawCards(count)
+		source:addToPile("danlve", ids, false)
+		room:setPlayerMark(source, "DanlveInvoked", 1)
+	end
+}
+Wave1st_DanlveVS = sgs.CreateViewAsSkill{ 
+	name = "Wave1st_Danlve", 
+	n = 999, 
+	view_filter = function(self, selected, to_select) 
+		return true
+	end, 
+	view_as = function(self, cards) 
+		local hp = sgs.Self:getHp()
+		if #cards >= hp then
+			local card = Wave1st_DanlveCard:clone()
+			for _,c in ipairs(cards) do
+				card:addSubcard(c)
+			end
+			return card
+		end
+	end, 
+	enabled_at_play = function(self, player) 
+		return false
+	end, 
+	enabled_at_response = function(self, player, pattern) 
+		return pattern == "@@Danlve"
+	end
+}
+Wave1st_Danlve = sgs.CreateTriggerSkill{ 
+	name = "Wave1st_Danlve", 
+	frequency = sgs.Skill_NotFrequent, 
+	events = {sgs.EventPhaseStart}, 
+	view_as_skill = Wave1st_DanlveVS, 
+	on_trigger = function(self, event, player, data) 
+		if player:getPhase() == sgs.Player_Start then
+			local room = player:getRoom()
+			local others = room:getOtherPlayers(player)
+			for _,source in sgs.qlist(others) do
+				if source:hasSkill(self:objectName()) then
+					local hp = source:getHp()
+					local cards = source:getCards("he")
+					if cards:length() >= hp then
+						if source:askForSkillInvoke(self:objectName(), data) then
+							room:askForUseCard(source, "@@Danlve", "@Danlve")
+						end
+					end
+				end
+			end
+		end
+	end, 
+	can_trigger = function(self, target) 
+		if target then
+			return target:isAlive()
+		end
+		return false
+	end
+}
+Wave1st_DanlveEffect = sgs.CreateTriggerSkill{ 
+	name = "#Wave1st_DanlveEffect", 
+	frequency = sgs.Skill_NotFrequent, 
+	events = {sgs.CardsMoveOneTime, sgs.EventPhaseEnd}, 
+	on_trigger = function(self, event, player, data) 
+		local room = player:getRoom()
+		if event == sgs.CardsMoveOneTime then
+			local move = data:toMoveOneTime()
+			local source = move.from
+			if source and source:objectName() == player:objectName() then
+				local places = move.from_places
+				if places:contains(sgs.Player_PlaceHand) or places:contains(sgs.Player_PlaceEquip) then
+					if player:askForSkillInvoke("Wave1st_Danlve", data) then
+						room:drawCards(player, 1, "Wave1st_Danlve")
+					end
+				end
+			end
+		elseif event == sgs.EventPhaseEnd then
+			local current = room:getCurrent()
+			if current:getPhase() == sgs.Player_Finish then
+				local danlvelist = player:getPile("danlve")
+				if not danlvelist:isEmpty() then
+					for _,id in sgs.qlist(danlvelist) do
+						room:obtainCard(player, id, false)
+					end
+				end
+				room:setPlayerMark(player, "DanlveInvoked", 0)
+			end
+		end
+	end, 
+	can_trigger = function(self, target) 
+		if target then
+			if target:isAlive() then
+				return target:getMark("DanlveInvoked") > 0
+			end
+		end
+		return false
+	end, 
+	priority = 2
+}
+Wave1st_DanlveClear = sgs.CreateTriggerSkill{ 
+	name = "#Wave1st_DanlveClear", 
+	frequency = sgs.Skill_Frequent, 
+	events = {sgs.EventLoseSkill}, 
+	on_trigger = function(self, event, player, data) 
+		if data:toString() == "Wave1st_Danlve" then
+			player:removePileByName("danlve")
+		end
+	end
+	priority = 2
+}
 --[[虞翻]]--
 Wave1st_Yufan = sgs.General(extension, "Wave1st_Yufan", "wu", "3")
 --[[
@@ -702,29 +817,356 @@ Wave1st_Yufan = sgs.General(extension, "Wave1st_Yufan", "wu", "3")
 		1.观看一名其他角色的至多两张手牌；
 		2.令一名角色恢复一点体力，对每名角色只能发动一次；
 		3.指定一名装备区没有牌的角色.若如此做,该角色可获得场上任意一张由你指定的装备牌。
+	状态：尚未验证
 	附注：描述及效果略复杂，且记忆问题较大，无联动，我自己都不知道谁选的，虽然2技能契合不错
+	问题：观看手牌的流程是怎样的？由自己选还是该角色选？是一张张地看还是一次性展示所有选牌？
+		在什么时间段内对每名角色只能发动一次？是本阶段（每阶段限一次）、本回合（考虑当先）还是整局游戏（类似颂词）？
+	暂解：先定为由自己选择并一张张地观看所选牌。
+		每阶段对每名角色只能发动一次（毕竟这个技能本身没有限制阶段发动次数，只要有手牌就可以一个阶段内多次发动）。
 ]]--
+Wave1st_YuanshuoShowCard = sgs.CreateSkillCard{ 
+	name = "Wave1st_YuanshuoShowCard", 
+	target_fixed = false, 
+	will_throw = true, 
+	filter = function(self, targets, to_select) 
+		if #targets == 0 then
+			if not to_select:isKongcheng() then
+				return to_select:objectName() ~= sgs.Self:objectName()
+			end
+		end
+		return false
+	end,
+	on_use = function(self, room, source, targets) 
+		local target = targets[1]
+		local card_ids = target:handCards()
+		for i=1, 2, 1 do
+			if not card_ids:isEmpty() then
+				if source:askForSkillInvoke(self:objectName()) then
+					local count = card_ids:length()
+					local index = math.random(0, count-1)
+					local id = card_ids:at(index)
+					room:showCard(target, id, source)
+					card_ids:removeOne(id)
+				end
+			end
+		end
+	end
+}
+Wave1st_YuanshuoRecoverCard = sgs.CreateSkillCard{ 
+	name = "Wave1st_YuanshuoRecoverCard", 
+	target_fixed = false, 
+	will_throw = true, 
+	filter = function(self, targets, to_select) 
+		if #targets == 0 then
+			if to_select:isWounded() then
+				return not to_select:hasFlag("YuanshuoRecoverTarget")
+			end
+		end
+		return false
+	end,
+	on_use = function(self, room, source, targets) 
+		local target = targets[1]
+		local recover = sgs.RecoverStruct()
+		recover.who = source
+		recover.recover = 1
+		room:recover(target, recover)
+		room:setPlayerFlag(target, "YuanshuoRecoverTarget")
+	end
+}
+Wave1st_YuanshuoObtainCard = sgs.CreateSkillCard{ 
+	name = "Wave1st_YuanshuoObtainCard", 
+	target_fixed = false, 
+	will_throw = true, 
+	filter = function(self, targets, to_select) 
+		if #targets == 0 then
+			return not to_select:hasEquip()
+		end
+		return false
+	end,
+	on_use = function(self, room, source, targets) 
+		local target = targets[1]
+		local alives = room:getAlivePlayers()
+		local equip_owners = sgs.SPlayerList()
+		for _,p in sgs.qlist(alives) do
+			if p:hasEquip() then
+				equip_owners:append(p)
+			end
+		end
+		if not equip_owners:isEmpty() then
+			local owner = room:askForPlayerChosen(source, equip_owners, self:objectName())
+			local id = room:askForCardChosen(source, owner, "e", self:objectName())
+			room:obtainCard(target, id, true)
+		end
+	end
+}
+Wave1st_YuanshuoCard = sgs.CreateSkillCard{ 
+	name = "Wave1st_YuanshuoCard", 
+	target_fixed = true, 
+	will_throw = true, 
+	on_use = function(self, room, source, targets) 
+		local choice == room:askForChoice(source, self:objectName(), "show+recover+obtain")
+		if choice == "show" then
+			room:setPlayerMark(source, "YuanshuoChoice", 1)
+			room:askForUseCard(source, "@@Yuanshuo", "@YuanshuoShow")
+		elseif choice == "recover" then
+			room:setPlayerMark(source, "YuanshuoChoice", 2)
+			room:askForUseCard(source, "@@Yuanshuo", "@YuanshuoRecover")
+		elseif choice == "obtain" then
+			room:setPlayerMark(source, "YuanshuoChoice", 3)
+			room:askForUseCard(source, "@@Yuanshuo", "@YuanshuoObtain")
+		end
+		room:setPlayerMark(source, "YuanshuoChoice", 0)
+	end
+}
+Wave1st_Yuanshuo = sgs.CreateViewAsSkill{ 
+	name = "Wave1st_Yuanshuo", 
+	n = 1, 
+	view_filter = function(self, selected, to_select) 
+		local mark = sgs.Self:getMark("YuanshuoChoice")
+		if mark == 0 then
+			if #selected == 0 then
+				return not to_select:isEquipped()
+			end
+		end
+		return false
+	end, 
+	view_as = function(self, cards) 
+		local mark = sgs.Self:getMark("YuanshuoChoice")
+		if mark == 0 then
+			if #cards == 1 then
+				local card = Wave1st_YuanshuoCard:clone()
+				card:addSubcard(cards[1])
+				return card
+			end
+		elseif mark == 1 then
+			if #cards == 0 then
+				return Wave1st_YuanshuoShowCard:clone()
+			end
+		elseif mark == 2 then
+			if #cards == 0 then
+				return Wave1st_YuanshuoRecoverCard:clone()
+			end
+		elseif mark == 3 then
+			if #cards == 0 then
+				return Wave1st_YuanshuoObtainCard:clone()
+			end
+		end
+	end, 
+	enabled_at_play = function(self, player) 
+		return not player:isKongcheng()
+	end, 
+	enabled_at_response = function(self, player, pattern) 
+		return pattern == "@@Yuanshuo"
+	end
+}
 --[[
 	技能：耿烈（锁定技）
 	描述：当场上有角色对与其同势力角色造成伤害后,你弃置伤害来源的两张牌或对其造成1点伤害。
+	状态：尚未验证
 	附注：Fs：2技能个人认为应该改。身份局除了主公技之外不应涉及势力
+	问题：某角色对自己造成的伤害是否算对同势力角色造成的伤害？
+	暂解：算是吧……毕竟没有约定“同势力的其他角色”。
 ]]--
+Wave1st_Genglie = sgs.CreateTriggerSkill{ 
+	name = "Wave1st_Genglie", 
+	frequency = sgs.Skill_Compulsory, 
+	events = {sgs.Damage}, 
+	on_trigger = function(self, event, player, data) 
+		local damage = data:toDamage()
+		local source = damage.from
+		if source and source:objectName() == player:objectName() then
+			local victim = damage.to
+			if victim and victim:getKingdom() == source:getKingdom() then
+				local room = player:getRoom()
+				local alives = room:getAlivePlayers()
+				for _,police in sgs.qlist(alives) do
+					if police:hasSkill(self:objectName()) then
+						local choice = "damage"
+						local cards = source:getCards("he")
+						if cards:length() >= 2 then
+							choice = room:askForChoice(police, self:objectName(), "discard+damage")
+						end
+						if choice == "discard" then
+							room:askForDiscard(source, self:objectName(), 2, 2, false, true, "@GenglieDiscard")
+						elseif choice == "damage" then
+							local new_damage = sgs.DamageStruct()
+							new_damage.from = police
+							new_damage.to = source
+							new_damage.damage = 1
+							room:damage(new_damage)
+						end
+					end
+				end
+			end
+		end
+	end, 
+	can_trigger = function(self, target) 
+		if target then
+			return target:isAlive()
+		end
+		return false
+	end
+}
 --[[潘璋马忠]]--
 Wave1st_PanzhangMazhong = sgs.General(extension, "Wave1st_PanzhangMazhong", "wu", "4")
 Wave1st_Anjiang = sgs.General(extension, "Wave1st_Anjiang", "god", "5")
 --[[
 	技能：暗箭
 	描述：在你的回合内你可以弃置一张“箭”令一名角色失去一点体力然后立即结束该回合；回合外将要受到伤害时你可以弃置一张“箭”令该伤害-1
+	状态：尚未验证
 ]]--
---Wave1st_Anjiang:addSkill()
+Wave1st_AnjianCard = sgs.CreateSkillCard{ 
+	name = "Wave1st_AnjianCard", 
+	target_fixed = false, 
+	will_throw = true, 
+	filter = function(self, targets, to_select) 
+		return #targets == 0
+	end,
+	on_use = function(self, room, source, targets) 
+		local target = targets[1]
+		local arrows = source:getPile("arrow")
+		room:fillAG(arrows, source)
+		local id = room:askForAG(source, arrows, false, self:objectName())
+		room:throwCard(id, source, source)
+		source:invoke("clearAG")
+		room:loseHp(target, 1)
+		source:setPhase(sgs.Player_NotActive)
+	end
+}
+Wave1st_Anjian = sgs.CreateViewAsSkill{ 
+	name = "Wave1st_Anjian", 
+	n = 0, 
+	view_as = function(self, cards) 
+		return Wave1st_AnjianCard:clone()
+	end, 
+	enabled_at_play = function(self, player) 
+		local arrows = player:getPile("arrow")
+		return not arrows:isEmpty()
+	end
+}
+Wave1st_Anjiang:addSkill(Wave1st_Anjian)
 --[[
 	技能：避锋
 	描述：当你造成或受到伤害时，可摸一张牌并将一张黑色牌置于武将牌上称之为“箭”，你可以将“箭”当无视距离和防具的杀使用，若造成伤害，你立即结束该回合。
+	状态：尚未验证（没有处理与目标增强技相关的内容，此杀目前只能指定单一目标）
 ]]--
+Wave1st_BifengCard = sgs.CreateSkillCard{ 
+	name = "Wave1st_BifengCard", 
+	target_fixed = true, 
+	will_throw = true, 
+	on_use = function(self, room, source, targets) 
+		local arrows = source:getPile("arrow")
+		room:fillAG(arrows, source)
+		local id = room:askForAG(source, arrows, false, self:objectName())
+		room:takeAG(source, id)
+		source:invoke("clearAG")
+		local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+		slash:addSubcard(id)
+		slash:setSkillName(self:objectName())
+		local alives = room:getAlivePlayers()
+		local victims = sgs.SPlayerList()
+		for _,p in sgs.qlist(alives) do
+			if source:canSlash(p, slash, false) then
+				victims:append(p)
+			end
+		end
+		if not victims:isEmpty() then
+			local target = room:askForPlayerChosen(source, victims, self:objectName())
+			room:setPlayerMark(target, "qinggang", 1)
+			local use = sgs.CardUseStruct()
+			use.card = slash
+			use.from = source
+			use.to:append(target)
+			room:useCard(use, true)
+			room:setPlayerMark(target, "qinggang", 0)
+		end
+	end
+}
+Wave1st_BifengVS = sgs.CreateViewAsSkill{ 
+	name = "Wave1st_Bifeng", 
+	n = 0, 
+	view_as = function(self, cards) 
+		return Wave1st_BifengCard:clone()
+	end, 
+	enabled_at_play = function(self, player) 
+		local arrows = player:getPile("arrow")
+		return not arrows:isEmpty()
+	end
+}
+Wave1st_Bifeng = sgs.CreateTriggerSkill{ 
+	name = "Wave1st_Bifeng", 
+	frequency = sgs.Skill_NotFrequent, 
+	events = {sgs.DamageCaused}, 
+	view_as_skill = Wave1st_BifengVS, 
+	on_trigger = function(self, event, player, data) 
+		local damage = data:toDamage()
+		local flag = false
+		local source = damage.from
+		local victim = damage.to
+		if source and source:objectName() == player:objectName() then
+			flag = true
+		elseif victim and victim:objectName() == player:objectName() then
+			flag = true
+		end
+		if flag then
+			if player:askForSkillInvoke(self:objectName(), data) then
+				local room = player:getRoom()
+				room:drawCards(player, 1, self:objectName())
+				local arrow = room:askForCard(player, ".|spade,club|.|.", "@Bifeng", data, self:objectName())
+				if arrow then
+					player:addToPile("arrow", arrow, true)
+				end
+			end
+		end
+	end
+}
+Wave1st_BifengEffect = sgs.CreateTriggerSkill{ 
+	name = "#Wave1st_BifengEffect", 
+	frequency = sgs.Skill_Frequent, 
+	events = {sgs.Damaged}, 
+	on_trigger = function(self, event, player, data) 
+		local damage = data:toDamage()
+		local slash = damage.card
+		if slash and slash:isKindOf("Slash") then
+			if slash:getSkillName() == "Wave1st_BifengCard" then
+				local room = player:getRoom()
+				local current = room:getCurrent()
+				current:setPhase(sgs.Player_NotActive)
+			end
+		end
+	end
+	priority = 2
+}
 --[[
 	技能：伺机（觉醒技）
 	描述：回合开始阶段，当你的“箭”达到3张或更多时你失去一点体力上限然后获得技能“暗箭 ”（在你的回合内你可以弃置一张“箭”令一名角色失去一点体力然后立即结束该回合；回合外将要受到伤害时你可以弃置一张“箭”令该伤害-1）。
+	状态：尚未验证
 ]]--
+Wave1st_Siji = sgs.CreateTriggerSkill{ 
+	name = "Wave1st_Siji", 
+	frequency = sgs.Skill_Wake, 
+	events = {sgs.EventPhaseStart}, 
+	on_trigger = function(self, event, player, data) 
+		if player:getPhase() == sgs.Player_Start then
+			local arrows = player:getPile("arrow")
+			if arrows:length() >= 3 then
+				local room = player:getRoom()
+				room:setPlayerMark(player, "SijiWaked", 1)
+				room:loseMaxHp(player, 1)
+				room:acquireSkill(player, "Wave1st_Anjian")
+				player:gainMark("@waked", 1)
+			end
+		end
+	end, 
+	can_trigger = function(self, target) 
+		if target then
+			if target:isAlive() and target:hasSkill(self:objectName()) then
+				return target:getMark("SijiWaked") == 0 
+			end
+		end
+		return false
+	end
+}
 --[[添加技能]]--
 Wave1st_Caochong:addSkill(Wave1st_Renhui)
 Wave1st_Caochong:addSkill(Wave1st_Tianyi)
@@ -732,6 +1174,7 @@ Wave1st_Guohuai:addSkill(Wave1st_Moudong)
 Wave1st_Manchong:addSkill(Wave1st_Mingsen)
 Wave1st_Jianyong:addSkill(Wave1st_Zhaode)
 Wave1st_Jianyong:addSkill(Wave1st_Zongjie)
+--Wave1st_Guanping:addSkill()
 --Wave1st_Guanping:addSkill()
 Wave1st_Liufeng:addSkill(Wave1st_Gangyong)
 Wave1st_Liufeng:addSkill(Wave1st_GangyongTarget)
@@ -741,11 +1184,14 @@ Wave1st_Liru:addSkill(Wave1st_FenchengStart)
 Wave1st_Fuhuanghou:addSkill(Wave1st_Mijian)
 Wave1st_Fuhuanghou:addSkill(Wave1st_MijianEffect)
 --Wave1st_Fuhuanghou:addSkill()
---Wave1st_Zhuran:addSkill()
---Wave1st_Yufan:addSkill()
---Wave1st_Yufan:addSkill()
---Wave1st_PanzhangMazhong:addSkill()
---Wave1st_PanzhangMazhong:addSkill()
+Wave1st_Zhuran:addSkill(Wave1st_Danlve)
+Wave1st_Zhuran:addSkill(Wave1st_DanlveEffect)
+Wave1st_Zhuran:addSkill(Wave1st_DanlveClear)
+Wave1st_Yufan:addSkill(Wave1st_Yuanshuo)
+Wave1st_Yufan:addSkill(Wave1st_Genglie)
+Wave1st_PanzhangMazhong:addSkill(Wave1st_Bifeng)
+Wave1st_PanzhangMazhong:addSkill(Wave1st_BifengEffect)
+Wave1st_PanzhangMazhong:addSkill(Wave1st_Siji)
 --[[翻译表]]--
 sgs.LoadTranslationTable{
     ["wave1st"] = "第一波",
