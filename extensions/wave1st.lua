@@ -185,46 +185,46 @@ Wave1st_Manchong = sgs.General(extension, "Wave1st_Manchong", "wei", "4")
 --[[
 	技能：明森
 	描述：每当你使用【杀】对角色造成伤害时，你可以令此伤害-1，然后弃置目标角色区域内至多两张牌，或令目标角色摸一张牌并将武将牌翻面。
-	状态：尚未验证
+	状态：验证通过
 	附注：Fs：个人认为这个人比徐盛都弱
 ]]--
-Wave1st_Mingsen = sgs.CreateTriggerSkill{ 
-	name = "Wave1st_Mingsen", 
-	frequency = sgs.Skill_NotFrequent, 
-	events = {sgs.DamageCaused}, 
-	view_as_skill = , 
-	on_trigger = function(self, event, player, data) 
-		local damage = data:toDamage()
-		local slash = damage.card
-		if slash and slash:isKindOf("Slash") then
-			local source = damage.from
-			if source and source:objectName() == player:objectName() then
-				if player:askForSkillInvoke(self:objectName(), data) then
-					damage.damage = damage.damage - 1
-					data:setValue(damage)
-					local room = player:getRoom()
-					local victim = damage.to
-					local choice = room:askForChoice(player, self:objectName(), "discard+draw")
-					if choice == "discard" then
-						for i=1, 2, 1 do
-							if not victim:isAllNude() then
-								local id = room:askForCardChosen(player, victim, "hej", self:objectName())
-								if id > 0 then
-									room:throwCard(id, victim, player)
-								else
-									break
-								end
-							end
-						end
-					elseif choice == "draw" then
-						room:drawCards(victim, 1, self:objectName())
-						victim:turnOver()
-					end
-				end
-			end
-		end
-	end
-	priority = 2
+Wave1st_Mingsen = sgs.CreateTriggerSkill{
+    name = "Wave1st_Mingsen",
+    frequency = sgs.Skill_NotFrequent,
+    events = {sgs.DamageCaused},
+    priority = 2,
+    on_trigger = function(self, event, player, data)
+        local damage = data:toDamage()
+        local slash = damage.card
+        if slash and slash:isKindOf("Slash") then
+            local source = damage.from
+            if source and source:objectName() == player:objectName() then
+                if player:askForSkillInvoke(self:objectName(), data) then
+                    damage.damage = damage.damage - 1
+                    data:setValue(damage)
+                    local room = player:getRoom()
+                    local victim = damage.to
+                    local choice = room:askForChoice(player, self:objectName(), "discard+draw")
+                    if choice == "discard" then
+                        for i=1, 2, 1 do
+                            if not victim:isAllNude() then
+                                local id = room:askForCardChosen(player, victim, "hej", self:objectName())
+                                if id > 0 then
+                                    room:throwCard(id, victim, player)
+                                else
+                                    break
+                                end
+                            end
+                        end
+                    elseif choice == "draw" then
+                        room:drawCards(victim, 1, self:objectName())
+                        victim:turnOver()
+                    end
+                end
+            end
+        end
+		if damage.damage ==0 then return true end
+    end
 }
 --[[简雍]]--
 Wave1st_Jianyong = sgs.General(extension, "Wave1st_Jianyong", "shu", "3")
