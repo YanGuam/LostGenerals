@@ -27,6 +27,7 @@ Wave1st_Caochong = sgs.General(extension, "Wave1st_Caochong", "wei", "3")
 	状态：尚未验证
 	问题：造成伤害的牌不止一张，如何计算点数？是算0点还是算所有牌的点数之和？比如乱击、奇策等情形。
 	暂解：这里先按技能卡的点数（默认为0点）计算了。
+	作者解释：如果为不止一张的话按照所有牌点数的和来算
 ]]--
 Wave1st_Renhui = sgs.CreateTriggerSkill{ 
 	name = "Wave1st_Renhui", 
@@ -42,7 +43,7 @@ Wave1st_Renhui = sgs.CreateTriggerSkill{
 				local alives = room:getAlivePlayers()
 				for _,source in sgs.qlist(alives) do
 					if source:hasSkill(self:objectName()) then
-						if source:inMyAttackRange(victim) then
+						if source:inMyAttackRange(victim) or victim:objectName() == source:objectName() then
 							if not source:isNude() then
 								local mycard = room:askForCard(source, ".", "@RenhuiDiscard")
 								if mycard then
@@ -53,7 +54,15 @@ Wave1st_Renhui = sgs.CreateTriggerSkill{
 									room:judge(judge)
 									local judgePoint = judge.card:getNumber()
 									local myPoint = mycard:getNumber()
-									local point = card:getNumber()
+									--local point = card:getNumber()
+									local point
+									if not card:isVirtualCard() then
+										point = card:getNumber()
+									else
+										for _, c in sgs.qlist(card:getSubcards()) do
+											point = point + c:getNumber()
+										end
+									end
 									if judgePoint + myPoint > point then
 										local choice = "draw"
 										if victim:isWounded() then
