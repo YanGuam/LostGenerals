@@ -431,6 +431,7 @@ Wave1st_GangyongTarget = sgs.CreateTargetModSkill{
 	状态：尚未验证
 	附注：记忆和计算略复杂，建议修改
 ]]--
+--[[
 Wave1st_Zibao = sgs.CreateTriggerSkill{ 
 	name = "Wave1st_Zibao", 
 	frequency = sgs.Skill_Compulsory, 
@@ -450,7 +451,25 @@ Wave1st_Zibao = sgs.CreateTriggerSkill{
 			end
 		end
 	end
+}]]
+--明月飞月明提出用PreHpRecover更新结构体完成
+Wave1st_Zibao = sgs.CreateTriggerSkill{
+	name = "Wave1st_Zibao" ,
+	frequency = sgs.Skill_Compulsory ,
+	events = {sgs.PreHpRecover} ,
+	on_trigger = function(self, event, player, data)
+		local room = player:getRoom()
+		local recover = data:toRecover()
+		if not recover.who then return end
+		if recover.who:objectName() ~= player:objectName() then return end
+		if recover.card then
+			if recover.card:isKindOf("SliverLion") then return end
+		end
+		recover.recover = recover.recover + 1
+		data:setValue(recover)
+	end
 }
+
 --[[李儒]]--
 Wave1st_Liru = sgs.General(extension, "Wave1st_Liru", "qun", "3")
 --[[
