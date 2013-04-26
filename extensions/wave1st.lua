@@ -367,7 +367,32 @@ Wave1st_Guanping = sgs.General(extension, "Wave1st_Guanping", "shu", "4")
 	技能：殉志（觉醒技）
 	描述：回合开始阶段开始时，若你已损失的体力是全场最多的（或之一且至少损失1点），你须减1点体力上限，回复体力至体力上限，并获得技能“武圣”和“当先”。
 	附注：2技能和已有技能重名。
+	状态：暂时验证成功。
 ]]--
+Wave1st_Xunzhi = sgs.CreateTriggerSkill{
+	name = "Wave1st_Xunzhi" ,
+	frequency = sgs.Skill_Wake ,
+	events = {sgs.EventPhaseStart} ,
+	on_trigger = function(self, event, player, data)
+		if player:getPhase() ~= sgs.Player_RoundStart then return end
+		if player:getLostHp() == 0 then return end
+		local room = player:getRoom()
+		if room:getTag("xunzhiinvoked"):toInt() == 1 then return end
+		for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+			if p:getLostHp() > player:getLostHp() then return end
+		end
+		room:loseMaxHp(player)
+		local recover = sgs.RecoverStruct()
+		recover.recover = player:getLostHp()
+		recover.who = player
+		room:recover(player, recover)
+		room:acquireSkill(player, "wusheng")
+		room:acquireSkill(player, "dangxian")
+		room:setTag("xunzhiinvoked", sgs.QVariant(1))
+	end ,
+	priority = 3
+}
+
 --[[刘封]]--
 Wave1st_Liufeng = sgs.General(extension, "Wave1st_Liufeng", "shu", "4")
 --[[
