@@ -86,7 +86,7 @@ sgs.LoadTranslationTable{
 	["Wei002_Caochong"] = "曹冲",
 	["&Wei002_Caochong"] = "曹冲",
 	["#Wei002_Caochong"] = "早夭的神童",
-	["designer:Wei002_Caochong"] = "待查",
+	["designer:Wei002_Caochong"] = "武威1984",
 	["cv:Wei002_Caochong"] = "无",
 	["illustrator:Wei002_Caochong"] = "待查",
 	
