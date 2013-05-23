@@ -1,5 +1,10 @@
 --[[
 	扩展包信息
+	全称：“失落的三将”扩展武将测试之蜀II包
+	名称：蜀II包（shu002）
+	武将：共1名
+		简雍（游说、善辩）
+	版本号：20130224
 ]]--
 module("extensions.shu002", package.seeall)
 extension = sgs.Package("shu002")
